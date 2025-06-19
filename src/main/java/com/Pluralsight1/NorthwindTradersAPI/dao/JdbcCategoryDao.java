@@ -5,10 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,27 +14,28 @@ public class JdbcCategoryDao implements CategoryDao {
     private DataSource dataSource;
 
     @Autowired
-    public JdbcCategoryDao(DataSource dataSource){
+    public JdbcCategoryDao(DataSource dataSource) {
         this.dataSource = dataSource;
     }
+
     @Override
     public List<Category> getAll() {
-       List<Category> categories = new ArrayList<>();
-       String sql = "SELECT CategoryID, CategoryName FROM Categories";
-       try(
-               Connection conn = dataSource.getConnection();
-               PreparedStatement stmt = conn.prepareStatement(sql)){
+        List<Category> categories = new ArrayList<>();
+        String sql = "SELECT CategoryID, CategoryName FROM Categories";
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-               ResultSet rs = stmt.executeQuery();
-               while (rs.next()){
-                   Category category = new Category();
-                   category.setCategoryId(rs.getInt("CategoryID"));
-                   category.setCategoryName(rs.getString("CategoryName"));
-                   categories.add(category);
-               }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Category category = new Category();
+                category.setCategoryId(rs.getInt("CategoryID"));
+                category.setCategoryName(rs.getString("CategoryName"));
+                categories.add(category);
+            }
 
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
         return categories;
     }
@@ -45,23 +43,44 @@ public class JdbcCategoryDao implements CategoryDao {
     @Override
     public Category getById(int id) {
         String sql = "SELECT CategoryID, CategoryName FROM Categories WHERE CategoryID = ?";
-        try(
+        try (
                 Connection conn = dataSource.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)){
-                stmt.setInt(1, id);
-                ResultSet rs = stmt.executeQuery();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
 
-                if (rs.next()){
-                    Category category = new Category();
-                    category.setCategoryId(rs.getInt("CategoryID"));
-                    category.setCategoryName(rs.getString("CategoryName"));
-                    return category;
-                }
+            if (rs.next()) {
+                Category category = new Category();
+                category.setCategoryId(rs.getInt("CategoryID"));
+                category.setCategoryName(rs.getString("CategoryName"));
+                return category;
+            }
 
-            } catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return null;
     }
 
+    @Override
+    public Category insert(Category category) {
+        String sql = "INSERT INTO Categories (CategoryName) VALUES (?)";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            stmt.setString(1, category.getCategoryName());
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int newId = generatedKeys.getInt(1);
+                    category.setCategoryId(newId);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+        return category;
+    }
 }
