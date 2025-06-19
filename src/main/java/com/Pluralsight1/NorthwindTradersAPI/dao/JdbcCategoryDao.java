@@ -1,0 +1,67 @@
+package com.Pluralsight1.NorthwindTradersAPI.dao;
+
+import com.Pluralsight1.NorthwindTradersAPI.model.Category;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class JdbcCategoryDao implements CategoryDao {
+    private DataSource dataSource;
+
+    @Autowired
+    public JdbcCategoryDao(DataSource dataSource){
+        this.dataSource = dataSource;
+    }
+    @Override
+    public List<Category> getAll() {
+       List<Category> categories = new ArrayList<>();
+       String sql = "SELECT CategoryID, CategoryName FROM Categories";
+       try(
+               Connection conn = dataSource.getConnection();
+               PreparedStatement stmt = conn.prepareStatement(sql)){
+
+               ResultSet rs = stmt.executeQuery();
+               while (rs.next()){
+                   Category category = new Category();
+                   category.setCategoryId(rs.getInt("CategoryID"));
+                   category.setCategoryName(rs.getString("CategoryName"));
+                   categories.add(category);
+               }
+
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+        }
+        return categories;
+    }
+
+    @Override
+    public Category getById(int id) {
+        String sql = "SELECT CategoryID, CategoryName FROM Categories WHERE CategoryID = ?";
+        try(
+                Connection conn = dataSource.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)){
+                stmt.setInt(1, id);
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()){
+                    Category category = new Category();
+                    category.setCategoryId(rs.getInt("CategoryID"));
+                    category.setCategoryName(rs.getString("CategoryName"));
+                    return category;
+                }
+
+            } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+}
