@@ -71,6 +71,11 @@ public class ProductsController {
     public void updateProduct(@PathVariable int id,@RequestBody Product product){
         productDao.update(id, product);
     }
+    @DeleteMapping("/products/{id}")
+    public void deleteProduct(@PathVariable int id) {
+        productDao.delete(id);
+    }
+
 
 }
 
